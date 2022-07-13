@@ -87,9 +87,11 @@ export class App extends Component {
           </Box>
         )}
 
-        {/* {items.length <= 0 && query !== '' && (
-          <div>There are no photos with this {query}</div>
-        )} */}
+        {items.length <= 0 && query !== '' && (
+          <Box mt="5">
+            <Text>There are no photos with this {query}</Text>
+          </Box>
+        )}
 
         <ToastContainer />
       </Box>
