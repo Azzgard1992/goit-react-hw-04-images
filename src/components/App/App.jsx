@@ -17,12 +17,13 @@ export class App extends Component {
     items: [],
     isLoader: false,
     error: null,
+    total: 0,
   };
 
   async componentDidUpdate(_, prevState) {
     const { query, page } = this.state;
 
-    if (prevState.query !== query || prevState.page !== page) {
+    if (prevState.query !== query) {
       try {
         this.setState({
           isLoader: true,
@@ -31,6 +32,28 @@ export class App extends Component {
 
         this.setState(prevState => ({
           items: [...prevState.items, ...images.hits],
+          total: images.total,
+        }));
+      } catch (error) {
+        this.setState({
+          error,
+        });
+      } finally {
+        this.setState({
+          isLoader: false,
+        });
+      }
+    }
+    if (prevState.page !== page) {
+      try {
+        this.setState({
+          isLoader: true,
+        });
+        const images = await imagesApi(query, page);
+
+        this.setState(prevState => ({
+          items: [...prevState.items, ...images.hits],
+          total: prevState.total - images.hits.length,
         }));
       } catch (error) {
         this.setState({
@@ -53,6 +76,7 @@ export class App extends Component {
       query: values,
       items: [],
       error: null,
+      total: 0,
     });
   };
 
@@ -63,7 +87,7 @@ export class App extends Component {
   };
 
   render() {
-    const { isLoader, items, query, error } = this.state;
+    const { isLoader, items, query, error, total, isShowModal } = this.state;
     return (
       <Box width="container" py="4" mx="auto" as="main">
         <GlobalStyle />
@@ -76,11 +100,16 @@ export class App extends Component {
         )}
         {items.length > 0 && (
           <Box mt="5">
-            <ImageGallery items={items} />
-            <Button onClick={this.loadMore}>Load more</Button>
+            <ImageGallery
+              items={items}
+              onToggleModal={this.toggleModal}
+              isShowModal={isShowModal}
+            />
           </Box>
         )}
         {isLoader && <Loader />}
+        {total >= 12 && <Button onClick={this.loadMore}>Load more</Button>}
+
         {error && (
           <Box mt="5">
             <Text>Something went wrong, try reloading the page.</Text>
