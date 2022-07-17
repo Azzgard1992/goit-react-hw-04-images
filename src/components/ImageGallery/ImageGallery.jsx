@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import { ImageGalleryItem } from 'components/ImageGalleryItem/ImageGalleryItem';
 import { Gallery, Item } from './ImageGallery.styled';
 
-export const ImageGallery = ({ items }) => {
+export const ImageGallery = ({ items, openModal }) => {
   return (
     <Gallery>
       {items.map(({ id, webformatURL, largeImageURL, tags }) => (
@@ -11,6 +11,7 @@ export const ImageGallery = ({ items }) => {
             url={webformatURL}
             largeUrl={largeImageURL}
             alt={tags}
+            openModal={openModal}
           />
         </Item>
       ))}

@@ -6,9 +6,10 @@ import { Component } from 'react';
 import { imagesApi } from 'services/api';
 import { GlobalStyle } from '../GlobalStyle';
 import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { Text } from './App.styled';
 import { Button } from 'components/Button/Button';
+import { Modal } from 'components/Modal/Modal';
+import 'react-toastify/dist/ReactToastify.css';
 
 export class App extends Component {
   state = {
@@ -18,42 +19,22 @@ export class App extends Component {
     isLoader: false,
     error: null,
     total: 0,
+    largeImageURL: null,
   };
 
   async componentDidUpdate(_, prevState) {
     const { query, page } = this.state;
 
-    if (prevState.query !== query) {
+    if (prevState.query !== query || prevState.page !== page) {
       try {
         this.setState({
           isLoader: true,
         });
-        const images = await imagesApi(query, page);
+        const { hits } = await imagesApi(query, page);
 
         this.setState(prevState => ({
-          items: [...prevState.items, ...images.hits],
-          total: images.total,
-        }));
-      } catch (error) {
-        this.setState({
-          error,
-        });
-      } finally {
-        this.setState({
-          isLoader: false,
-        });
-      }
-    }
-    if (prevState.page !== page) {
-      try {
-        this.setState({
-          isLoader: true,
-        });
-        const images = await imagesApi(query, page);
-
-        this.setState(prevState => ({
-          items: [...prevState.items, ...images.hits],
-          total: prevState.total - images.hits.length,
+          items: [...prevState.items, ...hits],
+          total: hits.length,
         }));
       } catch (error) {
         this.setState({
@@ -86,8 +67,20 @@ export class App extends Component {
     }));
   };
 
+  openModal = largeImageURL => {
+    this.setState({
+      largeImageURL,
+    });
+  };
+
+  closeModal = () => {
+    this.setState({
+      largeImageURL: null,
+    });
+  };
+
   render() {
-    const { isLoader, items, query, error, total, isShowModal } = this.state;
+    const { isLoader, items, query, error, total, largeImageURL } = this.state;
     return (
       <Box width="container" py="4" mx="auto" as="main">
         <GlobalStyle />
@@ -103,7 +96,7 @@ export class App extends Component {
             <ImageGallery
               items={items}
               onToggleModal={this.toggleModal}
-              isShowModal={isShowModal}
+              openModal={this.openModal}
             />
           </Box>
         )}
@@ -120,6 +113,12 @@ export class App extends Component {
           <Box mt="5">
             <Text>There are no photos with this {query}</Text>
           </Box>
+        )}
+
+        {largeImageURL && (
+          <Modal onClose={this.closeModal}>
+            <img src={largeImageURL} alt="Big foto" />
+          </Modal>
         )}
 
         <ToastContainer />
