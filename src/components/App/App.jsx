@@ -1,128 +1,114 @@
+import { GlobalStyle } from '../GlobalStyle';
 import { Box } from 'components/Box/Box';
+import { ToastContainer } from 'react-toastify';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
 import { Loader } from 'components/Loader/Loader';
 import { Searchbar } from 'components/Searchbar/Searchbar';
-import { Component } from 'react';
-import { imagesApi } from 'services/api';
-import { GlobalStyle } from '../GlobalStyle';
-import { ToastContainer } from 'react-toastify';
 import { Text } from './App.styled';
 import { Button } from 'components/Button/Button';
 import { Modal } from 'components/Modal/Modal';
+import { imagesApi } from 'services/api';
 import 'react-toastify/dist/ReactToastify.css';
+import { useState, useEffect } from 'react';
+import * as Scroll from 'react-scroll';
 
-export class App extends Component {
-  state = {
-    page: 1,
-    query: '',
-    items: [],
-    isLoader: false,
-    error: null,
-    total: 0,
-    largeImageURL: null,
-  };
+export const App = () => {
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+  const [items, setItems] = useState([]);
+  const [isLoader, setIsLoader] = useState(false);
+  const [error, setError] = useState(null);
+  const [total, setTotal] = useState(0);
+  const [largeImageURL, setLargeImageURL] = useState(null);
 
-  async componentDidUpdate(_, prevState) {
-    const { query, page } = this.state;
+  useEffect(() => {
+    if (query === '') return;
 
-    if (prevState.query !== query || prevState.page !== page) {
+    async function getImeges() {
       try {
-        this.setState({
-          isLoader: true,
-        });
+        setIsLoader(true);
         const { hits } = await imagesApi(query, page);
-
-        this.setState(prevState => ({
-          items: [...prevState.items, ...hits],
-          total: hits.length,
-        }));
+        setItems(items => [...items, ...hits]);
+        setTotal(hits.length);
       } catch (error) {
-        this.setState({
-          error,
-        });
+        setError(error);
       } finally {
-        this.setState({
-          isLoader: false,
-        });
+        setIsLoader(false);
       }
     }
-  }
 
-  searchImages = values => {
-    if (values === this.state.query) {
-      return;
-    }
-    this.setState({
-      page: 1,
-      query: values,
-      items: [],
-      error: null,
-      total: 0,
-    });
+    getImeges();
+  }, [query, page, error]);
+
+  const searchImages = values => {
+    if (values === query) return;
+    setPage(1);
+    setQuery(values);
+    setItems([]);
+    setError(null);
+    setTotal(0);
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const openModal = largeImageURL => {
+    setLargeImageURL(largeImageURL);
   };
 
-  openModal = largeImageURL => {
-    this.setState({
-      largeImageURL,
-    });
+  const closeModal = () => {
+    setLargeImageURL(null);
   };
 
-  closeModal = () => {
-    this.setState({
-      largeImageURL: null,
-    });
-  };
+  const scroll = Scroll.animateScroll;
 
-  render() {
-    const { isLoader, items, query, error, total, largeImageURL } = this.state;
-    return (
-      <Box width="container" py="4" mx="auto" as="main">
-        <GlobalStyle />
-        <Searchbar onSearch={this.searchImages} />
-        {!query && (
-          <Box mt="5">
-            <Text>Welcome to the photo gallery</Text>
-            <Text>Start your photo search</Text>
-          </Box>
-        )}
-        {items.length > 0 && (
-          <Box mt="5">
-            <ImageGallery
-              items={items}
-              onToggleModal={this.toggleModal}
-              openModal={this.openModal}
-            />
-          </Box>
-        )}
-        {isLoader && <Loader />}
-        {total >= 12 && <Button onClick={this.loadMore}>Load more</Button>}
+  const shouldRenderImagesGallery = items.length > 0;
+  const shouldRenderLoadMoreButtun = total >= 12;
+  const shouldRenderTextWarning = items.length <= 0;
 
-        {error && (
-          <Box mt="5">
-            <Text>Something went wrong, try reloading the page.</Text>
-          </Box>
-        )}
+  return (
+    <Box width="container" py="4" mx="auto" as="main">
+      <GlobalStyle />
+      <Searchbar onSearch={searchImages} />
+      {!query && (
+        <Box mt="5">
+          <Text>Welcome to the photo gallery</Text>
+          <Text>Start your photo search</Text>
+        </Box>
+      )}
+      {shouldRenderImagesGallery && (
+        <Box mt="5">
+          <ImageGallery items={items} openModal={openModal} />
+        </Box>
+      )}
+      {isLoader && <Loader />}
+      {shouldRenderLoadMoreButtun && (
+        <Button
+          onClick={() => {
+            setPage(page => page + 1);
+            scroll.scrollToBottom();
+          }}
+        >
+          Load more
+        </Button>
+      )}
 
-        {items.length <= 0 && query !== '' && (
-          <Box mt="5">
-            <Text>There are no photos with this {query}</Text>
-          </Box>
-        )}
+      {error && (
+        <Box mt="5">
+          <Text>Something went wrong, try reloading the page.</Text>
+        </Box>
+      )}
 
-        {largeImageURL && (
-          <Modal onClose={this.closeModal}>
-            <img src={largeImageURL} alt="Big foto" />
-          </Modal>
-        )}
+      {shouldRenderTextWarning && query !== '' && (
+        <Box mt="5">
+          <Text>There are no photos with this {query}</Text>
+        </Box>
+      )}
 
-        <ToastContainer />
-      </Box>
-    );
-  }
-}
+      {largeImageURL && (
+        <Modal onClose={closeModal}>
+          <img src={largeImageURL} alt="Big foto" />
+        </Modal>
+      )}
+
+      <ToastContainer />
+    </Box>
+  );
+};
